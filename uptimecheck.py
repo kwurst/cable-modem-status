@@ -17,30 +17,41 @@
 import urllib.request
 from bs4 import BeautifulSoup
 
-def uptimecheck():
-    getStatusPageFromModem()
-    getEventPageFromModem()
+class Modem():
+    
+    def __init__(self, IPaddress):
+        self.statusPageSoup = BeautifulSoup(urllib.request.urlopen('http://' + IPaddress + '/cgi-bin/status_cgi'))
+        self.statusPageTables = self.statusPageSoup.findAll('table')
+        self.eventPageSoup = BeautifulSoup(urllib.request.urlopen('http://' + IPaddress + '/cgi-bin/event_cgi'))
+        self.eventPageTables = self.eventPageSoup.findAll('table')
+        
+    def getUptime(self):
+        StatusTable = self.statusPageTables[5]
+        uptime = StatusTable.findAll('tr')[0].getText()
+        return uptime
+    
+    def getLastCMeventDate(self):
+        CMtable = self.eventPageTables[1]
+        CMdate = self.firstCell(self.lastRow(CMtable)).getText()
+        return CMdate
+    
+    def getLastMTAeventDate(self):
+        MTAtable = self.eventPageTables[3]
+        MTAdate = self.firstCell(self.lastRow(MTAtable)).getText()
+        return MTAdate  
+    
+    def lastRow(self, table):
+        return table.findAll('tr')[-1]
+    
+    def firstCell(self, row):
+        return row.findAll('td')[0]
+    
+def modemStatusCheck():
+    modem = Modem('192.168.100.1')
+    print(modem.getUptime())
+    print(modem.getLastCMeventDate())
+    print(modem.getLastMTAeventDate())
     return True
 
-def getStatusPageFromModem():
-    status_page = urllib.request.urlopen('http://192.168.100.1/cgi-bin/status_cgi')
-    soup = BeautifulSoup(status_page)
-    tables = soup.findAll('table')
-    StatusTable = tables[5]
-    uptime = StatusTable.findAll('tr')[0].getText()
-    print(uptime)
-
-def getEventPageFromModem():
-    event_page = urllib.request.urlopen('http://192.168.100.1/cgi-bin/event_cgi')
-    soup = BeautifulSoup(event_page.read())
-    tables = soup.findAll('table')
-    CMtable = tables[1]
-    MTAtable = tables[3]
-    CMdate = CMtable.findAll('tr')[-1].findAll('td')[0].getText()
-    print('Date of last CM event', CMdate)
-
-    MTAdate = MTAtable.findAll('tr')[-1].findAll('td')[0].getText()
-    print('Date of last MTA event', MTAdate)    
-
 if __name__ == '__main__':
-    uptimecheck()
+    modemStatusCheck()
